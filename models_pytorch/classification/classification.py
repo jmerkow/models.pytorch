@@ -15,8 +15,6 @@ class ClassificationModel(Model):
                  classifier='basic',
                  nclasses=6,
                  activation='sigmoid',
-                 classifier_params=None,
-
                  **kwargs):
         super().__init__()
 
@@ -24,12 +22,12 @@ class ClassificationModel(Model):
         self.encoder = get_encoder(encoder, encoder_weights=encoder_weights, model_dir=model_dir)
         self.classifier = get_classifier(classifier, encoder_channels=self.encoder.out_shapes,
                                          nclasses=nclasses, activation=activation,
-                                         classifier_params=classifier_params, **kwargs)
+                                         **kwargs)
 
         self.is_multi_task = self.classifier.is_multi_task
 
     def output_info(self):
-        return self.classifier.tasks.output_info()
+        return self.classifier.output_info()
 
     @property
     def tasks(self):

@@ -1,7 +1,9 @@
 from .basic import BasicClassifier
+from .srn import SpatialRegularizationClassifier
 
 classifier_map = {
-    'basic': BasicClassifier
+    'basic': BasicClassifier,
+    'srn': SpatialRegularizationClassifier,
 }
 
 
