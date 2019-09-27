@@ -1,6 +1,4 @@
-import six
 import torch
-from torch import nn as nn
 
 from .classifiers import get_classifier
 from ..base import Model
@@ -9,50 +7,38 @@ from ..encoders import get_encoder
 
 class ClassificationModel(Model):
 
-    def __init__(self, encoder='resnet34', activation='sigmoid',
-                 encoder_weights="imagenet", nclasses=6,
-                 tasks='cls',
-                 classifier_params=None, model_dir=None,
+    def __init__(self,
+                 encoder='resnet34',
+                 encoder_weights="imagenet",
+                 model_dir=None,
+
+                 classifier='basic',
+                 nclasses=6,
+                 activation='sigmoid',
+                 classifier_params=None,
+
                  **kwargs):
         super().__init__()
 
         self.name = encoder
         self.encoder = get_encoder(encoder, encoder_weights=encoder_weights, model_dir=model_dir)
+        self.classifier = get_classifier(classifier, encoder_channels=self.encoder.out_shapes,
+                                         nclasses=nclasses, activation=activation,
+                                         classifier_params=classifier_params, **kwargs)
 
-        if isinstance(tasks, six.string_types):
-            tasks = [tasks]
-
-        classifier_params = classifier_params or {'type': 'basic'}
-        task_params = {}
-
-        for task in tasks:
-            task_params[task] = classifier_params.pop(task, {})
-
-        for d in task_params.values():
-            d.setdefault('activation', activation)
-            d.setdefault('nclasses', nclasses)
-            for k, v in classifier_params.items():
-                d.setdefault(k, v)
-            d['encoder_channels'] = self.encoder.out_shapes
-            d.update(**kwargs)
-        self.classifiers = nn.ModuleDict({name: get_classifier(**args) for name, args in task_params.items()})
-        self.is_multi_task = len(self.classifiers) > 1
+        self.is_multi_task = self.classifier.is_multi_task
 
     def output_info(self):
-        return {name: {'nclasses': c.nclasses, 'activation': c.activation_type} for name, c in self.classifiers.items()}
+        return self.classifier.tasks.output_info()
 
     @property
     def tasks(self):
-        return list(self.output_info().keys())
+        return self.classifier.tasks
 
     def forward(self, x, **args):
         """Sequentially pass `x` trough model`s `encoder` and `decoder` (return logits!)"""
         features = self.encoder(x)
-        output = [(name, classifier(features)) for name, classifier in self.classifiers.items()]
-        if not self.is_multi_task:
-            output = output[0][1]
-        else:
-            output = dict(output)
+        output = self.classifier(features)
         return output
 
     def predict(self, x, **args):
@@ -61,18 +47,11 @@ class ClassificationModel(Model):
             self.eval()
         with torch.no_grad():
             features = self.encoder(x, **args)
-
-            output = [(name, classifier.predict(features)) for name, classifier in self.classifiers.items()]
-
-            if not self.is_multi_task:
-                output = output[0][1]
-            else:
-                output = dict(output)
-
+            output = self.classifier.predict(features)
             return output
 
     def get_encoder_params(self):
         return self.encoder.parameters()
 
     def get_classifier_params(self):
-        return self.classifiers.parameters()
+        return self.classifier.parameters()
