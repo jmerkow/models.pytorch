@@ -87,6 +87,7 @@ class SpatialRegularizationBlock(nn.Module):
         self.bn3 = nn.BatchNorm2d(outplanes * 4)
         self.relu3 = nn.ReLU(inplace=True)
         self.fc = nn.Linear(outplanes * 4, nclasses)
+        self.flatten = Flatten()
 
     def forward(self, x):
         x = self.conv1(x)
@@ -98,7 +99,7 @@ class SpatialRegularizationBlock(nn.Module):
         x = self.conv3(x)
         x = self.bn3(x)
         x = self.relu3(x)
-        x = x.squeeze(-1).squeeze(-1)  # [m, 2048, 1, 1] -> [m, 2048]
+        x = self.flatten(x)
         x = self.fc(x)
         return x
 
@@ -127,8 +128,7 @@ class SpatialRegularizationNet(nn.Module):
         fsr_logits = self.fsr(U)
         sum_pool = torch.mul(A, S)
         sum_pool = sum_pooling(sum_pool)
-        sum_pool = self.flatten(sum_pool)  # [m, 6, 1, 1] -> [m, 6]
-        # x = torch.sigmoid(x)  # Here or outside? Caffe: SigmoidCrossEntropy Loss
+        sum_pool = self.flatten(sum_pool)
         return fsr_logits, sum_pool
 
 
