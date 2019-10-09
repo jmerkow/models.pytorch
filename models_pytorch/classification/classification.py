@@ -24,6 +24,7 @@ class ClassificationModel(Model):
                                          nclasses=nclasses, activation=activation,
                                          **kwargs)
 
+        self.required_inputs = getattr(self.classifier, "required_inputs", [])
         self.is_multi_task = self.classifier.is_multi_task
 
     def output_info(self):
@@ -36,7 +37,8 @@ class ClassificationModel(Model):
     def forward(self, x, **args):
         """Sequentially pass `x` trough model`s `encoder` and `decoder` (return logits!)"""
         features = self.encoder(x)
-        output = self.classifier(features)
+        scalars = {k: args[k] for k in self.required_inputs}
+        output = self.classifier(features, **scalars)
         return output
 
     def predict(self, x, **args):
@@ -45,7 +47,8 @@ class ClassificationModel(Model):
             self.eval()
         with torch.no_grad():
             features = self.encoder(x, **args)
-            output = self.classifier.predict(features)
+            scalars = {k: args[k] for k in self.required_inputs}
+            output = self.classifier.predict(features, **scalars)
             return output
 
     def get_encoder_params(self):
