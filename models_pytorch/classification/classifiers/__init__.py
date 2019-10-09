@@ -1,11 +1,9 @@
 from .basic import BasicClassifier
-from .extra_inputs import ExtraScalarInputsClassifier
 from .srn import SpatialRegularizationClassifier
 
 classifier_map = {
     'basic': BasicClassifier,
     'srn': SpatialRegularizationClassifier,
-    'extra_inputs': ExtraScalarInputsClassifier,
 }
 
 
