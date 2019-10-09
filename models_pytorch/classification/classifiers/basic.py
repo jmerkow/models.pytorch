@@ -26,6 +26,8 @@ class BasicClassifier(nn.Module):
             d['encoder_channels'] = encoder_channels
             d.update(**kwargs)
         self.classifiers = nn.ModuleDict({name: get_classifier(**args) for name, args in task_params.items()})
+        self.required_inputs = list(set(i for c in self.classifiers.values() for i in c.required_inputs))
+
         self.is_multi_task = len(self.classifiers) > 1
 
     def output_info(self):
@@ -36,7 +38,7 @@ class BasicClassifier(nn.Module):
         return list(self.output_info().keys())
 
     def forward(self, features, **kwargs):
-        output = [(name, classifier(features)) for name, classifier in self.classifiers.items()]
+        output = [(name, classifier(features, **kwargs)) for name, classifier in self.classifiers.items()]
         if not self.is_multi_task:
             output = output[0][1]
         else:
@@ -45,7 +47,7 @@ class BasicClassifier(nn.Module):
         return output
 
     def predict(self, features, **kwargs):
-        output = [(name, classifier.predict(features)) for name, classifier in self.classifiers.items()]
+        output = [(name, classifier.predict(features, **kwargs)) for name, classifier in self.classifiers.items()]
 
         if not self.is_multi_task:
             output = output[0][1]
