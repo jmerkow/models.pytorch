@@ -1,3 +1,4 @@
+import torch
 import torch.nn as nn
 
 from models_pytorch.utils import Flatten, get_activation
@@ -10,7 +11,12 @@ class BasicClassifier(nn.Module):
         'max': nn.AdaptiveMaxPool2d,
     }
 
-    def __init__(self, encoder_channels, classes, hidden_layers=(), pool_type='avg', channel_index=0):
+    def __init__(self, encoder_channels, nclasses, hidden_layers=(), pool_type='avg', channel_index=0,
+                 activation='sigmoid'):
+
+        self.nclasses = nclasses
+        self.activation_type = str(activation)
+
         hidden_layers = hidden_layers or []
 
         self.channel_index = channel_index
@@ -20,7 +26,7 @@ class BasicClassifier(nn.Module):
         input_shapes.extend(hidden_layers)
 
         output_shapes = list(hidden_layers)
-        output_shapes.append(classes)
+        output_shapes.append(nclasses)
 
         super().__init__()
         modules = [self.pooling_types[pool_type]((1, 1)), Flatten()]
@@ -30,9 +36,16 @@ class BasicClassifier(nn.Module):
 
         modules.pop(-1)
         self.classifier = nn.Sequential(*modules)
+        self.activation = get_activation(activation)
 
     def forward(self, features):
         return self.classifier(features[self.channel_index])
+
+    def predict(self, features):
+        if self.training:
+            self.eval()
+        with torch.no_grad():
+            return self.activation(self.forward(features))
 
 
 classifier_types = {'basic': BasicClassifier}

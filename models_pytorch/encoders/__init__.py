@@ -7,6 +7,7 @@ from .densenet import densenet_encoders
 from .dpn import dpn_encoders
 from .efficientnet import efficientnet_encoders
 from .inceptionresnetv2 import inception_encoders
+from .inceptionv4 import inceptionv4_encoders
 from .resnet import resnet_encoders
 from .senet import senet_encoders
 from .vgg import vgg_encoders
@@ -21,6 +22,7 @@ encoders.update(densenet_encoders)
 encoders.update(inception_encoders)
 encoders.update(xception_encoders)
 encoders.update(efficientnet_encoders)
+encoders.update(inceptionv4_encoders)
 
 
 def get_encoder(name, encoder_weights=None, model_dir=None):

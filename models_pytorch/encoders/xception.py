@@ -64,5 +64,11 @@ xception_encoders = {
         'out_shapes': (2048, 0, 0, 0, 0),
         'pretrained_settings': pretrained_settings['xception'],
         'params': {'last_only': True},
+    },
+    'xception': {
+        'encoder': XceptionEncoder,
+        'out_shapes': (2048, 768, 256, 128, 64),
+        'pretrained_settings': pretrained_settings['xception'],
+        'params': {'last_only': False},
     }
 }
