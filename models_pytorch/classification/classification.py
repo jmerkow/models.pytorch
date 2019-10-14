@@ -46,7 +46,7 @@ class ClassificationModel(Model):
         if self.training:
             self.eval()
         with torch.no_grad():
-            features = self.encoder(x, **args)
+            features = self.encoder(x)
             scalars = {k: args[k] for k in self.required_inputs}
             output = self.classifier.predict(features, **scalars)
             return output
