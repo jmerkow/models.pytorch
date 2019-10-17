@@ -1,5 +1,6 @@
 import torch
 import torch.nn as nn
+import torch.nn.functional as F
 
 from models_pytorch.utils import Flatten, get_activation
 
@@ -77,19 +78,22 @@ class SpatialRegularizationBlock(nn.Module):
 
     def __init__(self, outplanes=512, nclasses=6):
         super(SpatialRegularizationBlock, self).__init__()
+        self.kernel_size = 14
         self.conv1 = nn.Conv2d(nclasses, outplanes, kernel_size=1, stride=1, padding=0, bias=False)
         self.bn1 = nn.BatchNorm2d(outplanes)
         self.relu1 = nn.ReLU(inplace=True)
         self.conv2 = nn.Conv2d(outplanes, outplanes, kernel_size=1, stride=1, padding=0, bias=False)
         self.bn2 = nn.BatchNorm2d(outplanes)
         self.relu2 = nn.ReLU(inplace=True)
-        self.conv3 = nn.Conv2d(outplanes, outplanes * 4, kernel_size=14, stride=1, padding=0, groups=4, bias=False)
+        self.conv3 = nn.Conv2d(outplanes, outplanes * 4, kernel_size=self.kernel_size, stride=1, padding=0, groups=4,
+                               bias=False)
         self.bn3 = nn.BatchNorm2d(outplanes * 4)
         self.relu3 = nn.ReLU(inplace=True)
         self.fc = nn.Linear(outplanes * 4, nclasses)
         self.flatten = Flatten()
 
     def forward(self, x):
+        x = F.interpolate(x, size=(self.kernel_size, self.kernel_size))
         x = self.conv1(x)
         x = self.bn1(x)
         x = self.relu1(x)
@@ -158,9 +162,9 @@ class SpatialRegularizationClassifier(nn.Module):
 
         outputs = {}
         x = self.pool(features[0])
-        outputs['main'] = self.fc(x)
-        fsr_scores, outputs['sum_pool'] = self.srn(features[1])
-        outputs['final'] = outputs['main'] + fsr_scores
+        outputs['cls'] = self.fc(x)
+        outputs['sr'], outputs['att'] = self.srn(features[1])
+        outputs['final'] = outputs['cls'] + outputs['sr']
 
         if not self.is_multi_task:
             return outputs[self.tasks[0]]
